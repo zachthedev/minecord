@@ -65,13 +65,16 @@ public final class MinecordImpl implements Minecord, PreLaunchEntrypoint, Dedica
         // Login to Discord
         try {
             // Prepare the JDA client
+            System.setProperty("org.slf4j.simpleLogger.log.net.dv8tion.jda", "DEBUG");
             final JDABuilder builder = JDABuilder.createDefault(getConfig().bot.token)
                                                  // allow the bot to read message contents
                                                  .enableIntents(GatewayIntent.MESSAGE_CONTENT)
                                                  // set initial bot status
                                                  .setStatus(getConfig().bot.status.starting)
                                                  // add event listeners
-                                                 .addEventListeners(new DiscordLifecycleListener());
+                                                 .addEventListeners(new DiscordLifecycleListener())
+                                                 // disable shutdown hook
+                                                 .setEnableShutdownHook(false);
 
             // Conditionally enable member caching
             if (getConfig().bot.cacheMembers) {
