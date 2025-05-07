@@ -74,7 +74,7 @@ public final class MinecordCommandsImpl implements MinecordCommands, MinecordAdd
         // Register the ticks-per-second (TPS) command, if enabled
         if (config.builtin.tps.enabled) {
             try {
-                LOGGER.info("Adding built-in ticks-per-second (TPS) command as '/{}'", config.builtin.uptime.name);
+                LOGGER.info("Adding built-in ticks-per-second (TPS) command as '/{}'", config.builtin.tps.name);
                 commands.addCommand(config.builtin.tps.name, new TPSCommand(config.builtin.tps));
             } catch (IllegalArgumentException e) {
                 LOGGER.error("Encountered invalid built-in ticks-per-second (TPS) command!", e);
