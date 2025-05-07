@@ -43,6 +43,22 @@ public final class PlaceholdersExt
 
     private PlaceholdersExt() {}
 
+    /**
+     * Removes unused placeholder sections from a placeholder template.
+     *
+     * @param placeholderGetter function that takes placeholder key and returns value
+     * @return fixed placeholder getter
+     */
+    private static PlaceholderGetter removeUnusedPlaceholders(PlaceholderGetter placeholderGetter)
+    {
+        return id -> {
+            PlaceholderHandler h = placeholderGetter.getPlaceholder(id);
+            return h != null
+                ? h
+                : (ctx, arg) -> PlaceholderResult.value("");
+        };
+    }
+
     /*
      * Placeholder contexts.
      */
@@ -177,7 +193,7 @@ public final class PlaceholdersExt
         @NotNull PlaceholderGetter placeholderGetter
     )
     {
-        return parseText(node, context, placeholderGetter).getString();
+        return parseText(node, context, removeUnusedPlaceholders(placeholderGetter)).getString();
     }
 
     /**
