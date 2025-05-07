@@ -13,6 +13,8 @@ import me.shedaniel.cloth.clothconfig.shadowed.blue.endless.jankson.Comment;
 import me.shedaniel.cloth.clothconfig.shadowed.blue.endless.jankson.JsonPrimitive;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
+import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
+import net.dv8tion.jda.api.interactions.commands.build.SubcommandGroupData;
 
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 
@@ -230,7 +232,8 @@ public class CommandConfig implements ConfigData
             /** The type of option. */
             @Comment("""
                 The type of option
-                Allowed values: ATTACHMENT, BOOLEAN, CHANNEL, INTEGER, MENTIONABLE, NUMBER, ROLE, STRING and USER""")
+                Allowed values: ATTACHMENT, BOOLEAN, CHANNEL, INTEGER, MENTIONABLE, NUMBER, ROLE, STRING, USER,
+                SUB_COMMAND and SUB_COMMAND_GROUP""")
             public OptionType type = OptionType.STRING;
 
             /** The option name. */
@@ -287,6 +290,49 @@ public class CommandConfig implements ConfigData
                     }
                 }
                 return option;
+            }
+
+            /**
+             * Available command options.
+             */
+            @Category("Options")
+            @Comment("Available command options")
+            public OptionSchema[] options = new OptionSchema[0];
+
+            /**
+             * Builds and returns the subcommand data.
+             *
+             * @return JDA subcommand data
+             * @throws IllegalArgumentException if an invalid options was provided
+             */
+            public SubcommandData getSubcommandData() throws IllegalArgumentException
+            {
+                if (type != OptionType.SUB_COMMAND) {
+                    throw new IllegalArgumentException("Not a sub-command: " + name);
+                }
+                SubcommandData sub = new SubcommandData(name, description);
+                for (OptionSchema nested : options) {
+                    sub.addOptions(nested.getOptionData());
+                }
+                return sub;
+            }
+
+            /**
+             * Builds and returns the subcommand group data.
+             *
+             * @return JDA subcommand group data
+             * @throws IllegalArgumentException if an invalid options was provided
+             */
+            public SubcommandGroupData getSubcommandGroupData() throws IllegalArgumentException
+            {
+                if (type != OptionType.SUB_COMMAND_GROUP) {
+                    throw new IllegalArgumentException("Not a sub-command group: " + name);
+                }
+                SubcommandGroupData group = new SubcommandGroupData(name, description);
+                for (OptionSchema nested : options) {
+                    group.addSubcommands(nested.getSubcommandData());
+                }
+                return group;
             }
         }
     }

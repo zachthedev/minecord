@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
@@ -19,6 +20,7 @@ import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEve
 import net.dv8tion.jda.api.exceptions.ParsingException;
 import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
+import net.dv8tion.jda.api.interactions.commands.OptionType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -73,9 +75,13 @@ public class CustomCommand extends MinecordCommand
         data.setDefaultPermissions(
             config.allowByDefault ? DefaultMemberPermissions.ENABLED : DefaultMemberPermissions.DISABLED
         );
-        Arrays.stream(config.options)
-            .map(CommandConfig.BaseCommandSchema.OptionSchema::getOptionData)
-            .forEach(data::addOptions);
+        Arrays.stream(config.options).forEach(opt -> {
+            switch (opt.type) {
+                case SUB_COMMAND -> data.addSubcommands(opt.getSubcommandData());
+                case SUB_COMMAND_GROUP -> data.addSubcommandGroups(opt.getSubcommandGroupData());
+                default -> data.addOptions(opt.getOptionData());
+            }
+        });
     }
 
     @Override
@@ -92,7 +98,7 @@ public class CustomCommand extends MinecordCommand
         // Prepare the Minecraft command
         final String origCommand;
         try {
-            origCommand = prepareCommand(config.commandNode, event.getOptions(), server);
+            origCommand = prepareCommand(config.commandNode, event.getOptions(), server, event.getSubcommandName());
         } catch (ParsingException | IllegalArgumentException e) {
             throw new Exception("Unable to prepare Minecraft command!", e);
         }
@@ -181,13 +187,15 @@ public class CustomCommand extends MinecordCommand
      * @param command Minecraft command template using {@code ${<name>}} for the 'name' argument
      * @param options Discord command options to substitute into the template
      * @param server  optional Minecraft server for placeholder context
+     * @param subcmd  optional Discord subcommand for placeholder substitution
      * @return a prepared Minecraft command
      * @throws ParsingException if an invalid command option type is encountered
      */
     private static String prepareCommand(
         @NotNull TextNode command,
         List<OptionMapping> options,
-        @Nullable MinecraftServer server
+        @Nullable MinecraftServer server,
+        @Nullable String subcmd
     ) throws ParsingException
     {
         if (command == EmptyNode.INSTANCE) return "";
@@ -195,7 +203,10 @@ public class CustomCommand extends MinecordCommand
         // Prepare new command placeholders
         final @Nullable PlaceholderContext ctx = server != null ? PlaceholderContext.of(server) : null;
         final HashMap<String, PlaceholderHandler> placeholders = new HashMap<>(options.size());
-        options.forEach(option -> placeholders.put(option.getName(), string(option.getAsString())));
+        Optional.ofNullable(subcmd).filter(s -> !s.isEmpty()).ifPresent(s -> placeholders.put("subcommand", string(s)));
+        options.stream()
+            .filter(opt -> opt.getType() != OptionType.SUB_COMMAND && opt.getType() != OptionType.SUB_COMMAND_GROUP)
+            .forEach(opt -> placeholders.put(opt.getName(), string(opt.getAsString())));
 
         // Parse the placeholders in the given command
         String result = PlaceholdersExt.parseString(command, ctx, placeholders).trim();
